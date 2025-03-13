@@ -10,11 +10,9 @@ format: html
 
 library(sf)
 library(dplyr)
-library(ggplot2)
-library(ggspatial)
 library(leaflet)
-library(osmdata)
-library(ggmap)
+library(leaflet.extras)
+library(htmlwidgets)
 ```
 
 # Load Data
@@ -42,7 +40,7 @@ poi_sf <- st_transform(poi_sf, 32631)
 # Create Zones
 ```{r}
 critical_zone <- st_buffer(poi_sf, 100)   # 0-50m buffer
-alright_zone <- st_buffer(poi_sf, 250)   # 0-100m buffer
+moderate_zone <- st_buffer(poi_sf, 250)   # 0-100m buffer
 ```
 
 # Classify points
@@ -51,40 +49,37 @@ survey_sf <- survey_sf %>%
   mutate(
     zone = case_when(
       lengths(st_intersects(survey_sf, critical_zone)) > 0 ~ "critical_zone",
-      lengths(st_intersects(survey_sf, alright_zone)) > 0 ~ "alright_zone",
+      lengths(st_intersects(survey_sf, moderate_zone)) > 0 ~ "moderate_zone",
       TRUE ~ "no_effect_zone"
     )
   )
 ```
 
 # Visualize the map
+Here the collected ("simulated") survey points are shown in grey, the points of interests i.e the beachs and the drinking water intake are show in blue.
 
-## Use ggmap 
-
-plot
-```{r}
-# Plot with ggmap background
-# Plot the map
-```
-
-
-## Use ggplot
-```{r}
-#| output: true
-
-```
+We are declaring three zones as follows:
+- `0 to 100m` if "Critical Zone"
+- `100 to 250m` if "Moderate Zone"
 
 ## use leaflet for interactive maps
 ```{r}
 #| output: true
+#| code-fold: true
+#| code-summary: "Show the code"
+# Define initial map center and zoom (for example purposes)
+initial_center <- c(49.90, 5.87)  # Latitude and Longitude for initial map center
+initial_zoom <- 13
 
 leaflet() %>%
   addTiles() %>%
   addPolygons(data = st_transform(critical_zone, 4326), fillColor = "red", opacity = 0.5, weight = 1, group = "Critical Zone") %>%
-  addPolygons(data = st_transform(alright_zone, 4326), fillColor = "yellow", opacity = 0.5, weight = 1, group = "Alright Zone") %>%
+  addPolygons(data = st_transform(moderate_zone, 4326), fillColor = "yellow", opacity = 0.5, weight = 1, group = "Moderate Zone") %>%
   addCircleMarkers(data = st_transform(poi_sf, 4326), color = "blue", radius = 5, label = poi_sf$name, group = "POI") %>%
   addCircleMarkers(data = st_transform(survey_sf, 4326), color = "black", radius = 3, group = "Survey Points") %>%
-  addLayersControl(overlayGroups = c("Critical Zone", "Alright Zone", "POI", "Survey Points"), options = layersControlOptions(collapsed = FALSE))
+  addLayersControl(overlayGroups = c("Critical Zone", "Moderate Zone", "POI", "Survey Points"), options = layersControlOptions(collapsed = FALSE)) %>%
+  setView(lng = initial_center[2], lat = initial_center[1], zoom = initial_zoom) %>%
+  addResetMapButton() 
 ```
 
 
@@ -94,4 +89,34 @@ write.csv(st_drop_geometry(survey_sf),
     "./data/classified_survey_data.csv", 
     row.names = FALSE
     )
+```
+
+
+# Find new center
+
+```{r}
+#| output: true
+#| code-fold: true
+#| code-summary: "Show the code"
+# Define initial map center and zoom (for example purposes)
+initial_center <- c(49.89987576569639, 5.882080084411428)  # Latitude and Longitude for initial map center
+initial_zoom <- 13
+
+leaflet() %>%
+  addTiles() %>%
+  addPolygons(data = st_transform(critical_zone, 4326), fillColor = "red", opacity = 0.5, weight = 1, group = "Critical Zone") %>%
+  addPolygons(data = st_transform(moderate_zone, 4326), fillColor = "yellow", opacity = 0.5, weight = 1, group = "Moderate Zone") %>%
+  addCircleMarkers(data = st_transform(poi_sf, 4326), color = "blue", radius = 5, label = poi_sf$name, group = "POI") %>%
+  addCircleMarkers(data = st_transform(survey_sf, 4326), color = "black", radius = 3, group = "Survey Points") %>%
+  addLayersControl(overlayGroups = c("Critical Zone", "Moderate Zone", "POI", "Survey Points"), options = layersControlOptions(collapsed = FALSE)) %>%
+  setView(lng = initial_center[2], lat = initial_center[1], zoom = initial_zoom) %>%
+  onRender("
+    function(el, x) {
+      var map = this;
+      map.on('moveend', function() {
+        var center = map.getCenter();
+        console.log('New center:', center.lat, center.lng);
+      });
+    }
+  ")
 ```
