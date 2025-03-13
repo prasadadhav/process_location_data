@@ -95,7 +95,7 @@ write.csv(st_drop_geometry(survey_sf),
 # Find new center
 
 ```{r}
-#| output: true
+#| output: false
 #| code-fold: true
 #| code-summary: "Show the code"
 # Define initial map center and zoom (for example purposes)
