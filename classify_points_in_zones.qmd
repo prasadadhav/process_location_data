@@ -13,6 +13,7 @@ library(dplyr)
 library(leaflet)
 library(leaflet.extras)
 library(htmlwidgets)
+library(ggplot2)
 ```
 
 # Load Data
@@ -82,17 +83,7 @@ leaflet() %>%
   addResetMapButton() 
 ```
 
-
-# Save the classified data
-```{r}
-write.csv(st_drop_geometry(survey_sf), 
-    "./data/classified_survey_data.csv", 
-    row.names = FALSE
-    )
-```
-
-
-# Find new center
+## Find new center
 
 ```{r}
 #| output: false
@@ -119,4 +110,38 @@ leaflet() %>%
       });
     }
   ")
+```
+
+# Classified data
+
+## Save the classified data
+```{r}
+#| output: false
+#| code-fold: true
+#| code-summary: "Show the code"
+write.csv(st_drop_geometry(survey_sf), 
+    "./data/classified_survey_data.csv", 
+    row.names = FALSE
+    )
+```
+
+## Peek into classfied data
+```{r}
+#| output: true
+#| code-fold: true
+#| code-summary: "Show the code"
+
+# Load the classified data
+classified_data <- read.csv("./data/classified_survey_data.csv", stringsAsFactors = FALSE)
+
+# Count the number of points in each zone
+zone_counts <- classified_data %>%
+  count(zone)
+
+# Create a bar plot
+ggplot(zone_counts, aes(x = zone, y = n, fill = zone)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Number of Points Classified in Each Zone", x = "Zone", y = "Count") +
+  theme_minimal() +
+  theme(text = element_text(size = 16))
 ```
