@@ -59,8 +59,8 @@ survey_sf <- survey_sf %>%
 Here the collected ("simulated") survey points are shown in grey, the points of interests i.e the beachs and the drinking water intake are show in blue.
 
 We are declaring three zones as follows:
-- `0 to 100m` if "Critical Zone"
-- `100 to 250m` if "Moderate Zone"
+- `0 to 100m` for "Critical Zone"
+- `100 to 250m` for "Moderate Zone"
 
 ## use leaflet for interactive maps
 ```{r}
@@ -83,7 +83,7 @@ leaflet() %>%
 ```
 
 
-# Save the data
+# Save the classified data
 ```{r}
 write.csv(st_drop_geometry(survey_sf), 
     "./data/classified_survey_data.csv", 
