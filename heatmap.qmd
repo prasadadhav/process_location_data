@@ -1,5 +1,5 @@
 ---
-title: "Classifying points of interest"
+title: "Heat map based on the 'collected' data "
 format: html
 ---
 
@@ -14,6 +14,13 @@ library(leaflet)
 library(leaflet.extras)
 library(htmlwidgets)
 library(ggplot2)
+library(viridis)
+library(sp)
+library(raster)
+library(terra)
+library(spatstat.geom)
+library(spatstat.explore)
+library(htmlwidgets)
 ```
 
 # Load Data
@@ -63,14 +70,15 @@ We are declaring three zones as follows:
 - `0 to 100m` for "Critical Zone"
 - `100 to 250m` for "Moderate Zone"
 
-## use leaflet for interactive maps
+# Simple Heat map
+
 ```{r}
 #| output: true
 #| code-fold: true
 #| code-summary: "Show the code"
-# Define initial map center and zoom (for example purposes)
+# Define initial map center and zoom
 initial_center <- c(49.89987576569639, 5.882080084411428)  # Latitude and Longitude for initial map center
-initial_zoom <- 13
+initial_zoom <- 13.25
 
 leaflet() %>%
   addTiles() %>%
@@ -78,70 +86,24 @@ leaflet() %>%
   addPolygons(data = st_transform(moderate_zone, 4326), fillColor = "yellow", opacity = 0.5, weight = 1, group = "Moderate Zone") %>%
   addCircleMarkers(data = st_transform(poi_sf, 4326), color = "blue", radius = 5, label = poi_sf$name, group = "POI") %>%
   addCircleMarkers(data = st_transform(survey_sf, 4326), color = "black", radius = 3, group = "Survey Points") %>%
-  addLayersControl(overlayGroups = c("Critical Zone", "Moderate Zone", "POI", "Survey Points"), options = layersControlOptions(collapsed = FALSE)) %>%
+  addHeatmap(data = st_transform(survey_sf, 4326), 
+             intensity = 10,  # Adjust intensity if you have a weight column
+             blur = 35, 
+             max = 1, 
+             radius = 30, 
+             group = "Heatmap") %>%
+  addLayersControl(
+    overlayGroups = c("Critical Zone", "Moderate Zone", "POI", "Survey Points", "Heatmap"), 
+    options = layersControlOptions(collapsed = FALSE)
+  ) %>%
   setView(lng = initial_center[2], lat = initial_center[1], zoom = initial_zoom) %>%
-  addResetMapButton() 
-```
-
-## Find new center
-
-```{r}
-#| output: false
-#| code-fold: true
-#| code-summary: "Show the code"
-# Define initial map center and zoom (for example purposes)
-initial_center <- c(49.89987576569639, 5.882080084411428)  # Latitude and Longitude for initial map center
-initial_zoom <- 13
-
-leaflet() %>%
-  addTiles() %>%
-  addPolygons(data = st_transform(critical_zone, 4326), fillColor = "red", opacity = 0.5, weight = 1, group = "Critical Zone") %>%
-  addPolygons(data = st_transform(moderate_zone, 4326), fillColor = "yellow", opacity = 0.5, weight = 1, group = "Moderate Zone") %>%
-  addCircleMarkers(data = st_transform(poi_sf, 4326), color = "blue", radius = 5, label = poi_sf$name, group = "POI") %>%
-  addCircleMarkers(data = st_transform(survey_sf, 4326), color = "black", radius = 3, group = "Survey Points") %>%
-  addLayersControl(overlayGroups = c("Critical Zone", "Moderate Zone", "POI", "Survey Points"), options = layersControlOptions(collapsed = FALSE)) %>%
-  setView(lng = initial_center[2], lat = initial_center[1], zoom = initial_zoom) %>%
-  onRender("
+  addResetMapButton()  %>%
+  htmlwidgets::onRender("
     function(el, x) {
       var map = this;
-      map.on('moveend', function() {
-        var center = map.getCenter();
-        console.log('New center:', center.lat, center.lng);
-      });
+      map.options.zoomSnap = 0.01;  // Set the zoomSnap value
     }
   ")
 ```
 
-# Classified data
-
-## Save the classified data
-```{r}
-#| output: false
-#| code-fold: true
-#| code-summary: "Show the code"
-write.csv(st_drop_geometry(survey_sf), 
-    "./data/classified_survey_data.csv", 
-    row.names = FALSE
-    )
-```
-
-## Peek into classfied data
-```{r}
-#| output: true
-#| code-fold: true
-#| code-summary: "Show the code"
-
-# Load the classified data
-classified_data <- read.csv("./data/classified_survey_data.csv", stringsAsFactors = FALSE)
-
-# Count the number of points in each zone
-zone_counts <- classified_data %>%
-  count(zone)
-
-# Create a bar plot
-ggplot(zone_counts, aes(x = zone, y = n, fill = zone)) +
-  geom_bar(stat = "identity") +
-  labs(title = "Number of Points Classified in Each Zone", x = "Zone", y = "Count") +
-  theme_minimal() +
-  theme(text = element_text(size = 16))
-```
+# Edited Heat map
