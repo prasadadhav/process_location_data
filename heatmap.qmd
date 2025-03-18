@@ -70,8 +70,8 @@ We are declaring three zones as follows:
 - `0 to 100m` for "Critical Zone"
 - `100 to 250m` for "Moderate Zone"
 
-# Simple Heat map
-
+# Heat map
+## Heat map showing concentrations
 ```{r}
 #| output: true
 #| code-fold: true
@@ -105,5 +105,3 @@ leaflet() %>%
     }
   ")
 ```
-
-# Edited Heat map
